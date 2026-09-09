@@ -1,0 +1,16 @@
+# Root ignores
+.DS_Store
+
+# Backend ignores
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+backend/samanvay.db
+backend/.pytest_cache/
+
+# Frontend ignores
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
