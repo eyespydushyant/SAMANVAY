@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import SplashScreen from './components/SplashScreen';
 import Dashboard from './pages/Dashboard';
@@ -15,7 +16,7 @@ export default function App() {
   const [splashDone, setSplashDone] = useState(false);
 
   return (
-    <>
+    <ThemeProvider onReplayIntro={() => setSplashDone(false)}>
       <AnimatePresence>
         {!splashDone && (
           <SplashScreen onComplete={() => setSplashDone(true)} />
@@ -37,6 +38,6 @@ export default function App() {
           </Layout>
         </BrowserRouter>
       )}
-    </>
+    </ThemeProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
 
 interface KPICardProps {
   title: string;
@@ -37,9 +38,13 @@ export default function KPICard({
   value,
   subtitle,
   icon,
-  colorClass = 'border-l-brand',
+  colorClass = 'border-l-blue-600',
   trend,
 }: KPICardProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'bright';
+  const isIR = theme === 'ir-classic';
+
   const numericValue = typeof value === 'number' ? value : parseFloat(String(value));
   const isNumeric = !isNaN(numericValue);
   const animatedCount = useCountUp(isNumeric ? numericValue : 0);
@@ -48,34 +53,57 @@ export default function KPICard({
     <motion.div
       initial={{ opacity: 0, y: 16, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
-      className={`relative bg-card rounded-xl p-5 border border-slate-800 border-l-4 ${colorClass} overflow-hidden group`}
-      style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.25)' }}
+      className={`relative rounded-xl p-5 border border-l-4 ${colorClass} overflow-hidden group transition-all duration-200 ${
+        isLight
+          ? 'bg-white border-slate-200 shadow-sm'
+          : isIR
+          ? 'bg-[#142238] border-slate-700/80 shadow-md'
+          : 'bg-[#1E293B] border-slate-800 shadow-md'
+      }`}
     >
-      {/* Subtle hover glow */}
+      {/* Subtle hover background highlight */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at top left, rgba(99,102,241,0.05) 0%, transparent 70%)' }}
+        style={{
+          background: isLight
+            ? 'radial-gradient(ellipse at top left, rgba(37,99,235,0.04) 0%, transparent 70%)'
+            : 'radial-gradient(ellipse at top left, rgba(99,102,241,0.06) 0%, transparent 70%)'
+        }}
       />
 
       <div className="relative flex justify-between items-start">
         <div className="flex-1">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">{title}</p>
-          <h3 className="text-3xl font-black text-white leading-none">
+          <p className={`text-xs font-bold uppercase tracking-wider mb-1.5 ${
+            isLight ? 'text-slate-500' : 'text-slate-400'
+          }`}>
+            {title}
+          </p>
+          <h3 className={`text-3xl font-black leading-tight ${
+            isLight ? 'text-slate-900' : 'text-white'
+          }`}>
             {isNumeric ? animatedCount.toLocaleString('en-IN') : value}
           </h3>
-          {subtitle && <p className="text-xs text-slate-500 mt-2">{subtitle}</p>}
+          {subtitle && (
+            <p className={`text-xs mt-1.5 font-medium ${
+              isLight ? 'text-slate-500' : 'text-slate-400'
+            }`}>
+              {subtitle}
+            </p>
+          )}
           {trend && (
-            <div className={`mt-2 flex items-center gap-1 text-xs font-medium ${trend.value >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <div className={`mt-2 flex items-center gap-1 text-xs font-semibold ${trend.value >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               <span>{trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value)}%</span>
-              <span className="text-slate-500 font-normal">{trend.label}</span>
+              <span className={`font-normal ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{trend.label}</span>
             </div>
           )}
         </div>
         {icon && (
           <motion.div
-            className="text-slate-500 group-hover:text-slate-300 transition-colors"
-            whileHover={{ scale: 1.15, rotate: 5 }}
+            className={`transition-colors p-2 rounded-lg ${
+              isLight ? 'text-slate-400 group-hover:text-blue-600 bg-slate-50' : 'text-slate-500 group-hover:text-slate-300 bg-slate-800/40'
+            }`}
+            whileHover={{ scale: 1.15, rotate: 4 }}
           >
             {icon}
           </motion.div>

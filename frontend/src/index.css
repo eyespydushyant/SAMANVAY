@@ -3,47 +3,122 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    background-color: #0F172A;
-    color: #F8FAFC;
-    scroll-behavior: smooth;
+  :root {
+    --bg-main: #0B132B;
+    --bg-card: #1E293B;
+    --bg-card-subtle: #162032;
+    --border-color: #334155;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
   }
 
-  /* Custom dark scrollbar */
+  html.theme-bright {
+    --bg-main: #F4F6F9;
+    --bg-card: #FFFFFF;
+    --bg-card-subtle: #F8FAFC;
+    --border-color: #E2E8F0;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    background-color: #F4F6F9;
+    color: #0F172A;
+  }
+
+  html.theme-ir-classic {
+    --bg-main: #0B1728;
+    --bg-card: #142238;
+    --bg-card-subtle: #1C2E4A;
+    --border-color: #273E63;
+    --text-primary: #FFFFFF;
+    --text-secondary: #93B4D7;
+    --text-muted: #5C7B9E;
+    background-color: #0B1728;
+    color: #FFFFFF;
+  }
+
+  html.theme-dark {
+    --bg-main: #0A0F1D;
+    --bg-card: #1E293B;
+    --bg-card-subtle: #151F30;
+    --border-color: #334155;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    background-color: #0A0F1D;
+    color: #F8FAFC;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  /* Custom scrollbars */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
   }
   ::-webkit-scrollbar-track {
-    background: #0f172a;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 3px;
+    background: #475569;
+    border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: #64748b;
+  }
+
+  html.theme-bright ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+  }
+  html.theme-bright ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
   }
 }
 
 @layer utilities {
   /* Glow effects */
   .glow-indigo {
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4), 0 0 24px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 0 14px rgba(99, 102, 241, 0.45), 0 0 28px rgba(99, 102, 241, 0.2);
   }
   .glow-green {
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4), 0 0 24px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.45), 0 0 28px rgba(16, 185, 129, 0.2);
   }
   .glow-red {
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4), 0 0 24px rgba(239, 68, 68, 0.15);
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.45), 0 0 28px rgba(239, 68, 68, 0.2);
   }
   .glow-orange {
-    box-shadow: 0 0 12px rgba(249, 115, 22, 0.4), 0 0 24px rgba(249, 115, 22, 0.15);
+    box-shadow: 0 0 14px rgba(249, 115, 22, 0.45), 0 0 28px rgba(249, 115, 22, 0.2);
+  }
+  .glow-maroon {
+    box-shadow: 0 0 14px rgba(158, 27, 30, 0.5), 0 0 28px rgba(158, 27, 30, 0.25);
+  }
+  .glow-gold {
+    box-shadow: 0 0 14px rgba(229, 169, 60, 0.5), 0 0 28px rgba(229, 169, 60, 0.25);
+  }
+
+  /* Indian Railways Tricolor Ribbon */
+  .ir-tricolor-bar {
+    background: linear-gradient(90deg, #FF9933 0%, #FF9933 33.3%, #FFFFFF 33.3%, #FFFFFF 66.6%, #138808 66.6%, #138808 100%);
+  }
+
+  .ir-maroon-gradient {
+    background: linear-gradient(135deg, #6B1113 0%, #8E1B1E 50%, #4D090B 100%);
+  }
+
+  .ir-navy-gradient {
+    background: linear-gradient(135deg, #091D3E 0%, #0F3266 50%, #061328 100%);
   }
 
   /* Animated dot grid background */
   .dot-grid {
-    background-image: radial-gradient(circle, #1e293b 1px, transparent 1px);
+    background-image: radial-gradient(circle, #334155 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  html.theme-bright .dot-grid {
+    background-image: radial-gradient(circle, #CBD5E1 1.2px, transparent 1.2px);
     background-size: 28px 28px;
   }
 
@@ -55,7 +130,7 @@
   }
 }
 
-/* Train animation keyframes */
+/* Animations */
 @keyframes train-move {
   0% { transform: translateX(-120%); }
   100% { transform: translateX(120vw); }
@@ -67,12 +142,12 @@
 
 @keyframes signal-pulse {
   0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.4); }
+  50% { opacity: 1; transform: scale(1.35); }
 }
 
 @keyframes float-up {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-6px); }
   100% { transform: translateY(0px); }
 }
 
@@ -83,104 +158,99 @@
 
 @keyframes status-blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { opacity: 0.35; }
 }
 
 .animate-train {
   animation: train-move 8s linear infinite;
 }
-
 .animate-signal {
   animation: signal-pulse 2s ease-in-out infinite;
 }
-
 .animate-float {
   animation: float-up 3s ease-in-out infinite;
 }
-
 .animate-spin-wheel {
   animation: spin-wheel 1s linear infinite;
 }
-
 .animate-status-blink {
-  animation: status-blink 2s ease-in-out infinite;
+  animation: status-blink 1.8s ease-in-out infinite;
 }
 
-/* React Big Calendar Dark Theme Overrides */
+/* React Big Calendar Overrides */
 .rbc-calendar {
-  @apply text-slate-300 font-sans;
+  @apply font-sans;
 }
-.rbc-header {
-  @apply border-slate-700 font-semibold py-2 bg-slate-800;
+html.theme-bright .rbc-calendar {
+  @apply text-slate-800;
 }
-.rbc-time-header.rbc-overflowing {
-  @apply border-slate-700;
+html:not(.theme-bright) .rbc-calendar {
+  @apply text-slate-200;
 }
-.rbc-day-bg {
-  @apply border-slate-700;
+html.theme-bright .rbc-header {
+  @apply border-slate-200 font-semibold py-2 bg-slate-100 text-slate-800;
 }
-.rbc-month-view, .rbc-time-view, .rbc-agenda-view {
+html:not(.theme-bright) .rbc-header {
+  @apply border-slate-700 font-semibold py-2 bg-slate-800 text-slate-200;
+}
+html.theme-bright .rbc-month-view, 
+html.theme-bright .rbc-time-view, 
+html.theme-bright .rbc-agenda-view {
+  @apply border-slate-200 bg-white;
+}
+html:not(.theme-bright) .rbc-month-view, 
+html:not(.theme-bright) .rbc-time-view, 
+html:not(.theme-bright) .rbc-agenda-view {
   @apply border-slate-700 bg-slate-900;
 }
-.rbc-day-slot .rbc-time-slot {
-  @apply border-slate-800;
-}
-.rbc-time-content {
-  @apply border-slate-700;
-}
-.rbc-time-header-content {
-  @apply border-slate-700;
-}
-.rbc-timeslot-group {
-  @apply border-slate-700;
-}
-.rbc-today {
-  @apply bg-slate-800/50;
-}
-.rbc-event {
-  @apply bg-brand border-none rounded shadow-sm text-sm p-1;
-}
-.rbc-off-range-bg {
-  @apply bg-slate-800/30;
-}
-.rbc-btn-group button {
-  @apply text-slate-300 border-slate-600 bg-slate-800 hover:bg-slate-700;
-}
-.rbc-btn-group button.rbc-active {
-  @apply bg-slate-700 text-white shadow-inner;
-}
-.rbc-toolbar button {
-  @apply text-slate-300;
-}
 
-/* Leaflet Map Dark Theme */
+/* Leaflet Map Overrides */
 .leaflet-container {
-  background: #0f172a !important;
   font-family: inherit;
 }
-.leaflet-popup-content-wrapper {
-  background: #1e293b !important;
-  color: #f8fafc !important;
+html.theme-bright .leaflet-container {
+  background: #F8FAFC !important;
+}
+html:not(.theme-bright) .leaflet-container {
+  background: #0B132B !important;
+}
+
+html.theme-bright .leaflet-popup-content-wrapper {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+html.theme-bright .leaflet-popup-tip {
+  background: #FFFFFF !important;
+}
+
+html:not(.theme-bright) .leaflet-popup-content-wrapper {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
   border: 1px solid #334155 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
 }
-.leaflet-popup-tip {
-  background: #1e293b !important;
+html:not(.theme-bright) .leaflet-popup-tip {
+  background: #1E293B !important;
 }
-.leaflet-control-zoom a {
-  background-color: #1e293b !important;
-  color: #94a3b8 !important;
+
+html.theme-bright .leaflet-control-zoom a {
+  background-color: #FFFFFF !important;
+  color: #334155 !important;
+  border-color: #E2E8F0 !important;
+}
+html.theme-bright .leaflet-control-zoom a:hover {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+
+html:not(.theme-bright) .leaflet-control-zoom a {
+  background-color: #1E293B !important;
+  color: #94A3B8 !important;
   border-color: #334155 !important;
 }
-.leaflet-control-zoom a:hover {
+html:not(.theme-bright) .leaflet-control-zoom a:hover {
   background-color: #334155 !important;
-  color: #f8fafc !important;
-}
-.leaflet-control-attribution {
-  background: rgba(15, 23, 42, 0.8) !important;
-  color: #64748b !important;
-}
-.leaflet-control-attribution a {
-  color: #6366f1 !important;
+  color: #F8FAFC !important;
 }
