@@ -190,7 +190,7 @@ export default function Sidebar() {
               Ministry of Railways
             </p>
             <p className={`text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              Govt. of India · PS #26027
+              Government of India · Ministry of Railways
             </p>
           </div>
         </div>

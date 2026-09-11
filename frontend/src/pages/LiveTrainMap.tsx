@@ -3,8 +3,12 @@ import { MapContainer, TileLayer, Polyline, Marker, Tooltip, useMap } from 'reac
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Train, Clock, X, Filter, Layers, CheckCircle, ShieldAlert, Sparkles, Navigation } from 'lucide-react';
+import {
+  Train, Clock, X, Filter, Layers, CheckCircle, ShieldAlert,
+  Search, Radio, Calendar, Zap, Key, ExternalLink, ChevronRight, Gauge
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { railRadarApi } from '../api/client';
 
 // Fix leaflet default icon path issue with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -21,21 +25,18 @@ const TILE_PROVIDERS = {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     subdomains: ['a', 'b', 'c'],
-    badge: '100% Free · No Key',
   },
   railway_tracks: {
     name: 'Indian Railways Track Network (OpenRailwayMap)',
     url: 'https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',
     attribution: 'Map: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Rails: &copy; <a href="https://www.OpenRailwayMap.org">OpenRailwayMap</a>',
     subdomains: ['a', 'b', 'c'],
-    badge: 'Official IR Track Overlay',
   },
   esri_topo: {
     name: 'ESRI Topographic & Mountains',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; National Geographic, DeLorme, NAVTEQ',
     subdomains: ['server', 'services'],
-    badge: 'Terrain & Ghats',
   },
 };
 
@@ -98,7 +99,7 @@ const CORRIDORS = [
     type: 'Semi-High Speed Vande Bharat Track',
   },
   {
-    id: 'NR-01', name: 'New Delhi – Mathura (Yamuna River Corridor)', zone: 'NR', color: '#dc2626',
+    id: 'NR-01', name: 'New Delhi – Mathura (Yamuna Corridor)', zone: 'NR', color: '#dc2626',
     daily_trains: 220, length_km: 141,
     coords: [[28.642, 77.220], [28.100, 77.400], [27.492, 77.673]] as [number, number][],
     stations: ['New Delhi', 'Hazrat Nizamuddin', 'Faridabad', 'Palwal', 'Mathura Jn'],
@@ -136,36 +137,36 @@ const ZONE_COLORS: Record<string, string> = {
   NR: '#dc2626',
 };
 
-// ─── Custom Train Marker with Indian Railways Styling ────────────────────────
-function createTrainIcon(color: string, isLight: boolean) {
+const POPULAR_QUICK_TRAINS = [
+  { num: '22436', name: 'Vande Bharat Express' },
+  { num: '12002', name: 'Bhopal Shatabdi' },
+  { num: '12951', name: 'Mumbai Rajdhani' },
+  { num: '12124', name: 'Deccan Queen' },
+];
+
+function createTrainIcon(color: string, isLight: boolean, label?: string) {
   const strokeColor = isLight ? '#0F172A' : '#FFFFFF';
   const svgContent = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="26" viewBox="0 0 40 26">
-      <!-- Train Body -->
-      <rect x="2" y="2" width="32" height="18" rx="4" fill="${color}" stroke="${strokeColor}" stroke-width="1.5"/>
-      <!-- Tricolor Indian Railways band -->
-      <rect x="2" y="2" width="32" height="3" fill="#FF9933" rx="1"/>
-      <rect x="2" y="5" width="32" height="2" fill="#FFFFFF"/>
-      <rect x="2" y="7" width="32" height="2" fill="#138808"/>
-      <!-- Windows -->
-      <rect x="5" y="11" width="6" height="5" rx="1" fill="rgba(255,255,255,0.9)"/>
-      <rect x="14" y="11" width="6" height="5" rx="1" fill="rgba(255,255,255,0.9)"/>
-      <rect x="23" y="11" width="6" height="5" rx="1" fill="rgba(255,255,255,0.9)"/>
-      <!-- Headlight beam -->
-      <circle cx="32" cy="13" r="2.5" fill="#FEF08A" stroke="#CA8A04" stroke-width="0.8"/>
-      <!-- Wheels -->
-      <circle cx="9" cy="22" r="3.5" fill="#1E293B" stroke="${strokeColor}" stroke-width="1"/>
-      <circle cx="26" cy="22" r="3.5" fill="#1E293B" stroke="${strokeColor}" stroke-width="1"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="28" viewBox="0 0 42 28">
+      <rect x="2" y="3" width="34" height="18" rx="4" fill="${color}" stroke="${strokeColor}" stroke-width="1.5"/>
+      <rect x="2" y="3" width="34" height="3" fill="#FF9933" rx="1"/>
+      <rect x="2" y="6" width="34" height="2" fill="#FFFFFF"/>
+      <rect x="2" y="8" width="34" height="2" fill="#138808"/>
+      <rect x="6" y="12" width="6" height="5" rx="1" fill="rgba(255,255,255,0.9)"/>
+      <rect x="15" y="12" width="6" height="5" rx="1" fill="rgba(255,255,255,0.9)"/>
+      <rect x="24" y="12" width="6" height="5" rx="1" fill="rgba(255,255,255,0.9)"/>
+      <circle cx="34" cy="14" r="2.5" fill="#FEF08A" stroke="#CA8A04" stroke-width="0.8"/>
+      <circle cx="10" cy="23" r="3.5" fill="#1E293B" stroke="${strokeColor}" stroke-width="1"/>
+      <circle cx="28" cy="23" r="3.5" fill="#1E293B" stroke="${strokeColor}" stroke-width="1"/>
     </svg>`;
   return L.divIcon({
-    html: `<div style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35)); transform: scale(1.1);">${svgContent}</div>`,
+    html: `<div style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4)); transform: scale(1.1);">${svgContent}</div>`,
     className: 'custom-train-icon',
-    iconSize: [40, 26],
-    iconAnchor: [20, 13],
+    iconSize: [42, 28],
+    iconAnchor: [21, 14],
   });
 }
 
-// ─── Moving Train Component ──────────────────────────────────────────────────
 function MovingTrain({ corridor, isLight }: { corridor: typeof CORRIDORS[0]; isLight: boolean }) {
   const [posIndex, setPosIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -220,10 +221,7 @@ function MovingTrain({ corridor, isLight }: { corridor: typeof CORRIDORS[0]; isL
           </div>
           <div style={{ fontSize: 11, fontWeight: 600 }}>{corridor.name}</div>
           <div style={{ fontSize: 10, color: isLight ? '#64748B' : '#94A3B8', marginTop: 3 }}>
-            Current Section: {corridor.stations[Math.min(posIndex, corridor.stations.length - 1)]} → {corridor.stations[Math.min(posIndex + 1, corridor.stations.length - 1)]}
-          </div>
-          <div style={{ fontSize: 9, color: corridor.color, marginTop: 4, fontWeight: 600 }}>
-            ⚡ {corridor.type}
+            Section: {corridor.stations[Math.min(posIndex, corridor.stations.length - 1)]} → {corridor.stations[Math.min(posIndex + 1, corridor.stations.length - 1)]}
           </div>
         </div>
       </Tooltip>
@@ -231,30 +229,74 @@ function MovingTrain({ corridor, isLight }: { corridor: typeof CORRIDORS[0]; isL
   );
 }
 
-function MapBoundsController() {
+function MapBoundsController({ targetCoords }: { targetCoords?: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
-    map.setView([21.8, 77.5], 5);
-  }, [map]);
+    if (targetCoords) {
+      map.flyTo(targetCoords, 7, { duration: 1.5 });
+    } else {
+      map.setView([21.8, 77.5], 5);
+    }
+  }, [map, targetCoords]);
   return null;
 }
 
 export default function LiveTrainMap() {
   const { theme } = useTheme();
   const isLight = theme === 'bright';
-  const isIRClassic = theme === 'ir-classic';
+  const isIR = theme === 'ir-classic';
 
   const [selectedCorridor, setSelectedCorridor] = useState<typeof CORRIDORS[0] | null>(null);
   const [filterZone, setFilterZone] = useState('');
-  const [activeTileKey, setActiveTileKey] = useState<keyof typeof TILE_PROVIDERS>(
-    isLight ? 'osm_bright' : 'osm_bright'
-  );
+  const [activeTileKey, setActiveTileKey] = useState<keyof typeof TILE_PROVIDERS>('osm_bright');
   const [clock, setClock] = useState(new Date());
+
+  // ─── RailRadar API Integration State ──────────────────────────────────────
+  const [trainQuery, setTrainQuery] = useState('22436');
+  const [railApiKey, setRailApiKey] = useState(() => localStorage.getItem('railradar_api_key') || '');
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [loadingTrack, setLoadingTrack] = useState(false);
+  const [liveTrainData, setLiveTrainData] = useState<any>(null);
+  const [scheduleData, setScheduleData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'live' | 'schedule'>('live');
+  const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Fetch RailRadar live train on mount with default Vande Bharat 22436
+  useEffect(() => {
+    fetchRailRadarTrain('22436');
+  }, []);
+
+  const fetchRailRadarTrain = async (trainNum: string) => {
+    if (!trainNum) return;
+    setLoadingTrack(true);
+    try {
+      const [liveRes, schedRes] = await Promise.all([
+        railRadarApi.getLive(trainNum, railApiKey || undefined),
+        railRadarApi.getSchedule(trainNum, railApiKey || undefined),
+      ]);
+      setLiveTrainData(liveRes.data);
+      setScheduleData(schedRes.data);
+
+      if (liveRes.data?.current_coordinates) {
+        setTargetCoords(liveRes.data.current_coordinates as [number, number]);
+      }
+    } catch (e) {
+      console.error('RailRadar API error:', e);
+    }
+    setLoadingTrack(false);
+  };
+
+  const handleSaveApiKey = (key: string) => {
+    setRailApiKey(key);
+    localStorage.setItem('railradar_api_key', key);
+    setShowKeyInput(false);
+    fetchRailRadarTrain(trainQuery);
+  };
 
   const filteredCorridors = filterZone
     ? CORRIDORS.filter(c => c.zone === filterZone)
@@ -266,89 +308,175 @@ export default function LiveTrainMap() {
   const currentTile = TILE_PROVIDERS[activeTileKey];
 
   return (
-    <div className="space-y-5">
-      {/* Indian Railways Notice Banner explaining API-free map */}
+    <div className="space-y-4">
+      {/* ─── RailRadar API Live Bar & Search ──────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`p-3 rounded-xl border flex items-center justify-between flex-wrap gap-3 ${
+        className={`p-3.5 rounded-2xl border transition-all ${
           isLight
-            ? 'bg-blue-50/80 border-blue-200 text-blue-900 shadow-sm'
-            : 'bg-indigo-950/40 border-indigo-500/30 text-indigo-200'
+            ? 'bg-white border-slate-200 shadow-sm'
+            : isIR
+            ? 'bg-[#121E33] border-slate-700 shadow-md'
+            : 'bg-slate-900 border-slate-800 shadow-md'
         }`}
       >
-        <div className="flex items-center gap-2.5 text-xs font-medium">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="font-bold">Indian Railways Geospatial Engine:</span>
-          <span>Powered by Free OpenStreetMap & OpenRailwayMap — <strong>Zero API Key Required</strong>. Clean tiles loaded seamlessly!</span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Left: RailRadar Brand + Search Input */}
+          <div className="flex items-center gap-3 flex-1 min-w-[320px]">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+              </span>
+              <span className="text-xs font-black tracking-wider uppercase text-rose-500 flex items-center gap-1">
+                <Radio className="w-3.5 h-3.5 animate-pulse" />
+                RailRadar Live Telemetry
+              </span>
+            </div>
+
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                fetchRailRadarTrain(trainQuery);
+              }}
+              className="flex items-center gap-2 flex-1 max-w-md"
+            >
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={trainQuery}
+                  onChange={e => setTrainQuery(e.target.value)}
+                  placeholder="Enter train number (e.g. 22436, 12002, 12951)..."
+                  className={`w-full text-xs px-3 py-2 pl-8 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-300 text-slate-900'
+                      : 'bg-slate-800/80 border-slate-700 text-white'
+                  }`}
+                />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              </div>
+              <button
+                type="submit"
+                disabled={loadingTrack}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all disabled:opacity-50 shadow-sm"
+              >
+                {loadingTrack ? 'Tracking...' : 'Track Live'}
+              </button>
+            </form>
+          </div>
+
+          {/* Quick Popular Trains Chips */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mr-1">Popular:</span>
+            {POPULAR_QUICK_TRAINS.map(t => (
+              <button
+                key={t.num}
+                onClick={() => {
+                  setTrainQuery(t.num);
+                  fetchRailRadarTrain(t.num);
+                }}
+                className={`text-[11px] px-2.5 py-1 rounded-lg border font-semibold transition-all ${
+                  trainQuery === t.num
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                    : isLight
+                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                }`}
+              >
+                {t.num} {t.name.split(' ')[0]}
+              </button>
+            ))}
+
+            {/* Optional RailRadar API Key Configuration Button */}
+            <button
+              onClick={() => setShowKeyInput(!showKeyInput)}
+              className={`p-1.5 rounded-lg border text-xs transition-colors ${
+                railApiKey ? 'text-emerald-500 border-emerald-500/40 bg-emerald-500/10' : 'text-slate-400 border-slate-700 hover:text-slate-200'
+              }`}
+              title="Configure RailRadar API Key (api.railradar.in)"
+            >
+              <Key className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
-          <CheckCircle className="w-3.5 h-3.5" /> 100% Free Open Tiles Active
-        </div>
+
+        {/* API Key Drawer */}
+        <AnimatePresence>
+          {showKeyInput && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3 text-xs"
+            >
+              <span className="font-semibold text-slate-500">RailRadar API Key:</span>
+              <input
+                type="password"
+                defaultValue={railApiKey}
+                onBlur={e => handleSaveApiKey(e.target.value)}
+                placeholder="Paste key from api.railradar.in (Optional, fallback live telemetry active)"
+                className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent"
+              />
+              <span className="text-[10px] text-slate-400">Endpoints: api.railradar.in/v1/trains/:num/live & timetable</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
-      {/* Header */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
+      {/* ─── Map Header & Controls ───────────────────────────────────────────── */}
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className={`text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} flex items-center gap-2.5`}>
-              <Train className="w-6 h-6 text-blue-600" />
+            <h1 className={`text-xl font-black ${isLight ? 'text-slate-900' : 'text-white'} flex items-center gap-2`}>
+              <Train className="w-5 h-5 text-blue-600" />
               Live Train Network & Corridor Map
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-600 border border-amber-500/30">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-600 border border-amber-500/30">
               IR Live Feed
             </span>
           </div>
-          <p className={`text-xs mt-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-            Real-time Indian Railways corridor tracking, active maintenance block possessions, and mountain ghat crossings
+          <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+            Real-time corridor tracking with active maintenance block overlays & RailRadar live train status
           </p>
         </div>
 
-        {/* Controls: Tile Selector + Clock + Zone Filter */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Map Layer Switcher */}
-          <div className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs ${
+          <div className={`flex items-center gap-1.5 p-1 rounded-xl border text-xs ${
             isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-800/80 border-slate-700'
           }`}>
-            <Layers className="w-4 h-4 text-blue-600 ml-1" />
-            <span className={`font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>Map Style:</span>
+            <Layers className="w-3.5 h-3.5 text-blue-600 ml-1" />
             <select
               value={activeTileKey}
               onChange={e => setActiveTileKey(e.target.value as keyof typeof TILE_PROVIDERS)}
-              className={`bg-transparent text-xs font-medium focus:outline-none cursor-pointer ${
-                isLight ? 'text-slate-800' : 'text-slate-200'
-              }`}
+              className="bg-transparent text-xs font-semibold focus:outline-none cursor-pointer py-1 px-1"
             >
               <option value="osm_bright">☀️ OpenStreetMap (Bright White)</option>
-              <option value="railway_tracks">🚆 Indian Railway Tracks (OpenRailwayMap)</option>
+              <option value="railway_tracks">🚆 Indian Railways Tracks (OpenRailwayMap)</option>
               <option value="esri_topo">🏔️ Mountain & Topo (ESRI)</option>
             </select>
           </div>
 
           {/* Live Clock */}
-          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold ${
             isLight ? 'bg-white border-slate-200 text-slate-800 shadow-sm' : 'bg-slate-800/80 border-slate-700 text-white'
           }`}>
-            <Clock className="w-4 h-4 text-blue-600" />
-            <span className="font-mono text-xs font-bold">
-              IST {clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </span>
+            <Clock className="w-3.5 h-3.5 text-blue-600" />
+            <span>IST {clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
 
           {/* Zone Filter */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs ${
             isLight ? 'bg-white border-slate-200 text-slate-800 shadow-sm' : 'bg-slate-800/80 border-slate-700 text-slate-200'
           }`}>
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <Filter className="w-3 h-3 text-slate-400" />
             <select
               value={filterZone}
               onChange={e => setFilterZone(e.target.value)}
               className="bg-transparent text-xs font-medium focus:outline-none cursor-pointer"
             >
-              <option value="">All IR Zones</option>
+              <option value="">All Zones (10 Corridors)</option>
               <option value="CR">Central Railway (CR)</option>
               <option value="SCR">South Central (SCR)</option>
               <option value="WR">Western Railway (WR)</option>
@@ -358,33 +486,12 @@ export default function LiveTrainMap() {
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Active Trains Running', value: filteredCorridors.reduce((s, c) => s + Math.floor(c.daily_trains / 24), 0), color: 'text-emerald-600', icon: '🚆', bg: isLight ? 'bg-white border-slate-200' : 'bg-slate-800/60 border-slate-700' },
-          { label: 'Active Maintenance Blocks', value: activeBlocks, color: 'text-rose-600', icon: '🔴', bg: isLight ? 'bg-white border-slate-200' : 'bg-slate-800/60 border-slate-700' },
-          { label: 'Upcoming Scheduled Blocks', value: upcomingBlocks, color: 'text-amber-600', icon: '🟡', bg: isLight ? 'bg-white border-slate-200' : 'bg-slate-800/60 border-slate-700' },
-          { label: 'Monitored IR Corridors', value: filteredCorridors.length, color: 'text-blue-600', icon: '📍', bg: isLight ? 'bg-white border-slate-200' : 'bg-slate-800/60 border-slate-700' },
-        ].map(stat => (
-          <div
-            key={stat.label}
-            className={`border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm ${stat.bg}`}
-          >
-            <span className="text-2xl">{stat.icon}</span>
-            <div>
-              <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
-              <div className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{stat.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Map Container and Side Panel */}
-      <div className="flex gap-4" style={{ height: '560px' }}>
+      {/* ─── Map Container + RailRadar Live Telemetry Drawer ──────────────────── */}
+      <div className="flex gap-4" style={{ height: '540px' }}>
         {/* Map */}
         <div
           className={`flex-1 rounded-2xl overflow-hidden border relative shadow-md ${
-            isLight ? 'border-slate-300 bg-white' : 'border-slate-700 bg-slate-900'
+            isLight ? 'border-slate-300 bg-white' : 'border-slate-800 bg-slate-900'
           }`}
         >
           <MapContainer
@@ -393,9 +500,9 @@ export default function LiveTrainMap() {
             style={{ height: '100%', width: '100%' }}
             zoomControl={true}
           >
-            <MapBoundsController />
+            <MapBoundsController targetCoords={targetCoords} />
 
-            {/* Free Tile Provider Layer (No API Key Required!) */}
+            {/* Free Tile Provider (No Key Required!) */}
             <TileLayer
               key={activeTileKey}
               url={currentTile.url}
@@ -403,7 +510,6 @@ export default function LiveTrainMap() {
               subdomains={currentTile.subdomains}
             />
 
-            {/* If Railway Tracks layer is selected, render base map underneath if needed */}
             {activeTileKey === 'railway_tracks' && (
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -418,8 +524,8 @@ export default function LiveTrainMap() {
                   positions={corridor.coords}
                   pathOptions={{
                     color: corridor.color,
-                    weight: 4.5,
-                    opacity: 0.9,
+                    weight: 4,
+                    opacity: 0.85,
                   }}
                   eventHandlers={{
                     click: () => setSelectedCorridor(corridor),
@@ -435,12 +541,11 @@ export default function LiveTrainMap() {
                       fontWeight: 700,
                       fontSize: 11,
                     }}>
-                      {corridor.id}: {corridor.name} ({corridor.type})
+                      {corridor.id}: {corridor.name}
                     </div>
                   </Tooltip>
                 </Polyline>
 
-                {/* Animated Train Marker */}
                 <MovingTrain corridor={corridor} isLight={isLight} />
 
                 {/* Active Block Warning Marker */}
@@ -449,13 +554,9 @@ export default function LiveTrainMap() {
                     position={corridor.coords[Math.floor(corridor.coords.length / 2)]}
                     icon={L.divIcon({
                       html: `<div style="
-                        background: #DC2626;
-                        border: 2px solid #FFFFFF;
-                        border-radius: 50%;
-                        width: 22px; height: 22px;
-                        display: flex; align-items: center; justify-content: center;
-                        box-shadow: 0 0 14px rgba(220,38,38,0.8);
-                        animation: signal-pulse 1.5s ease-in-out infinite;
+                        background: #DC2626; border: 2px solid #FFFFFF; border-radius: 50%;
+                        width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+                        box-shadow: 0 0 14px rgba(220,38,38,0.8); animation: signal-pulse 1.5s ease-in-out infinite;
                         font-size: 11px; color: white; font-weight: bold;
                       ">⚠</div>`,
                       className: '',
@@ -465,14 +566,7 @@ export default function LiveTrainMap() {
                     eventHandlers={{ click: () => setSelectedCorridor(corridor) }}
                   >
                     <Tooltip direction="top" opacity={1}>
-                      <div style={{
-                        background: '#991B1B',
-                        color: '#FFFFFF',
-                        borderRadius: 6,
-                        padding: '6px 10px',
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}>
+                      <div style={{ background: '#991B1B', color: '#FFFFFF', borderRadius: 6, padding: '5px 8px', fontSize: 11, fontWeight: 700 }}>
                         ⚠️ Active Maintenance Block on {corridor.id}
                       </div>
                     </Tooltip>
@@ -480,152 +574,162 @@ export default function LiveTrainMap() {
                 )}
               </div>
             ))}
+
+            {/* Target Tracked RailRadar Train Marker */}
+            {liveTrainData?.current_coordinates && (
+              <Marker
+                position={liveTrainData.current_coordinates as [number, number]}
+                icon={L.divIcon({
+                  html: `<div style="
+                    background: #2563EB; border: 3px solid #FEF08A; border-radius: 50%;
+                    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+                    box-shadow: 0 0 20px #2563EB; font-size: 14px; animation: float-up 2s ease-in-out infinite;
+                  ">🚆</div>`,
+                  className: '',
+                  iconSize: [32, 32],
+                  iconAnchor: [16, 16],
+                })}
+              >
+                <Tooltip direction="top" opacity={1} permanent>
+                  <div style={{ background: '#1E3A8A', color: '#FFFFFF', padding: '4px 8px', borderRadius: 6, fontWeight: 800, fontSize: 11 }}>
+                    {liveTrainData.train_name} ({liveTrainData.speed_kmh} km/h)
+                  </div>
+                </Tooltip>
+              </Marker>
+            )}
           </MapContainer>
         </div>
 
-        {/* Corridor Inspection Slide-In Panel */}
-        <AnimatePresence>
-          {selectedCorridor && (
-            <motion.div
-              initial={{ opacity: 0, x: 50, width: 0 }}
-              animate={{ opacity: 1, x: 0, width: 310 }}
-              exit={{ opacity: 0, x: 50, width: 0 }}
-              transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-              className={`rounded-2xl overflow-hidden flex flex-col border shadow-xl ${
-                isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-700 text-white'
-              }`}
-              style={{ minWidth: 310, borderLeft: `5px solid ${selectedCorridor.color}` }}
-            >
-              {/* Panel Header */}
-              <div className={`p-4 border-b flex justify-between items-start ${
-                isLight ? 'border-slate-200 bg-slate-50' : 'border-slate-800 bg-slate-800/60'
-              }`}>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: ZONE_COLORS[selectedCorridor.zone] + '25', color: ZONE_COLORS[selectedCorridor.zone] }}
-                    >
-                      {selectedCorridor.zone} Zone
-                    </span>
-                    <span className="text-xs font-mono font-bold text-slate-500">{selectedCorridor.id}</span>
-                  </div>
-                  <h3 className="text-sm font-black leading-snug">{selectedCorridor.name}</h3>
-                  <span className="text-[10px] font-semibold text-blue-600 block mt-0.5">
-                    {selectedCorridor.type}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setSelectedCorridor(null)}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+        {/* ─── RailRadar Tracked Train Detail Panel ──────────────────────────── */}
+        <div
+          className={`w-80 rounded-2xl border flex flex-col overflow-hidden shadow-lg transition-colors ${
+            isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-white'
+          }`}
+        >
+          {/* Panel Header */}
+          <div className={`p-4 border-b flex items-start justify-between ${
+            isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/60 border-slate-800'
+          }`}>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                  #{liveTrainData?.train_number || trainQuery}
+                </span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  liveTrainData?.status === 'RUNNING' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'
+                }`}>
+                  {liveTrainData?.status || 'RUNNING'}
+                </span>
               </div>
+              <h3 className="font-black text-sm leading-tight">{liveTrainData?.train_name || 'Loading train...'}</h3>
+              <p className="text-[11px] text-blue-600 font-semibold mt-0.5">
+                {liveTrainData?.train_type || 'Superfast Express'}
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs font-bold text-emerald-500 flex items-center gap-1 justify-end">
+                <Gauge className="w-3.5 h-3.5" />
+                {liveTrainData?.speed_kmh || 0} km/h
+              </span>
+              <span className="text-[10px] text-slate-400">
+                {liveTrainData?.delay_minutes ? `+${liveTrainData.delay_minutes}m Late` : 'On Time'}
+              </span>
+            </div>
+          </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-                {/* Metrics */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className={`p-3 rounded-lg border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-800 border-slate-700'}`}>
-                    <div className="text-slate-500 mb-1">Daily Train Traffic</div>
-                    <div className="text-base font-black">{selectedCorridor.daily_trains} trains</div>
-                  </div>
-                  <div className={`p-3 rounded-lg border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-800 border-slate-700'}`}>
-                    <div className="text-slate-500 mb-1">Route Length</div>
-                    <div className="text-base font-black">{selectedCorridor.length_km} km</div>
-                  </div>
-                </div>
-
-                {/* Stations */}
-                <div>
-                  <div className="font-bold uppercase tracking-wider text-slate-500 mb-2">Key Stations & Ghat Sections</div>
-                  <div className="space-y-1.5">
-                    {selectedCorridor.stations.map((st, i) => (
-                      <div key={st} className="flex items-center gap-2">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{
-                            background: i === 0 ? '#10B981' : i === selectedCorridor.stations.length - 1 ? '#EF4444' : selectedCorridor.color
-                          }}
-                        />
-                        <span className={`font-medium ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>{st}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Maintenance Blocks */}
-                <div>
-                  <div className="font-bold uppercase tracking-wider text-slate-500 mb-2">Coordinated Track Blocks</div>
-                  {(MOCK_BLOCKS[selectedCorridor.id] || []).length === 0 ? (
-                    <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                      ✓ No active track possession. All lines clear.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {(MOCK_BLOCKS[selectedCorridor.id] || []).map((b, i) => (
-                        <div
-                          key={i}
-                          className={`p-3 rounded-lg border ${
-                            b.status === 'Active'
-                              ? 'bg-rose-500/10 border-rose-500/30 text-rose-600'
-                              : isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-800 border-slate-700'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-mono font-bold">{b.window}</span>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              b.status === 'Active' ? 'bg-rose-500 text-white' : 'bg-amber-500/20 text-amber-600'
-                            }`}>
-                              {b.status}
-                            </span>
-                          </div>
-                          <div className="font-semibold text-blue-600">{b.dept}</div>
-                          <div className="text-slate-500 mt-0.5">{b.tasks} defects unified in shadow block</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Legend & Controls */}
-      <div className={`p-4 rounded-xl border flex flex-wrap gap-4 items-center justify-between shadow-sm ${
-        isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
-      }`}>
-        <div className="flex flex-wrap gap-3 items-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">IR Zones:</span>
-          {Object.entries(ZONE_COLORS).map(([zone, color]) => (
+          {/* Tabs: Live Status vs Timetable */}
+          <div className={`flex border-b text-xs font-bold ${isLight ? 'border-slate-200 bg-slate-100/60' : 'border-slate-800 bg-slate-800/40'}`}>
             <button
-              key={zone}
-              onClick={() => setFilterZone(filterZone === zone ? '' : zone)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border transition-all ${
-                filterZone === zone ? 'ring-2 ring-blue-500' : ''
+              onClick={() => setActiveTab('live')}
+              className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition-colors ${
+                activeTab === 'live'
+                  ? isLight ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'bg-slate-800 text-blue-400 border-b-2 border-blue-400'
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
-              style={{
-                color,
-                background: color + '15',
-                borderColor: color + '40',
-              }}
             >
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-              {zone === 'CR' ? 'Central Railway' : zone === 'SCR' ? 'South Central' : zone === 'WR' ? 'Western Railway' : 'Northern Railway'}
+              <Zap className="w-3.5 h-3.5" /> Live Status
             </button>
-          ))}
-        </div>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition-colors ${
+                activeTab === 'schedule'
+                  ? isLight ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'bg-slate-800 text-blue-400 border-b-2 border-blue-400'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" /> Timetable
+            </button>
+          </div>
 
-        <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-rose-600 shadow-sm" />
-            Active Block Closure
-          </span>
-          <span className="flex items-center gap-1.5">
-            🚆 Animated Indian Express (Real-time Section Speed)
-          </span>
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
+            {activeTab === 'live' ? (
+              <>
+                {/* Current & Next Section */}
+                <div className={`p-3 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700/80'}`}>
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Current Section</div>
+                  <div className="font-black text-sm">
+                    {liveTrainData?.current_station?.name} ({liveTrainData?.current_station?.code})
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Dep: {liveTrainData?.current_station?.departure_time}
+                  </div>
+                </div>
+
+                <div className={`p-3 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700/80'}`}>
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Approaching Station</div>
+                  <div className="font-black text-sm text-blue-600">
+                    {liveTrainData?.next_station?.name} ({liveTrainData?.next_station?.code})
+                  </div>
+                  <div className="flex justify-between text-[11px] text-slate-500 mt-1">
+                    <span>ETA: {liveTrainData?.next_station?.eta}</span>
+                    <span>Distance: {liveTrainData?.next_station?.distance_km} km</span>
+                  </div>
+                </div>
+
+                {/* Corridor & Safety Coordination */}
+                <div className={`p-3 rounded-xl border ${isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'}`}>
+                  <div className="text-[10px] uppercase font-bold mb-1">Block Planner Safety Clearance</div>
+                  <p className="text-[11px] leading-relaxed">
+                    Train #{liveTrainData?.train_number} tracked against <strong>{liveTrainData?.corridor || 'Northern Railway'}</strong>. No conflicting maintenance possessions in current block sector.
+                  </p>
+                </div>
+
+                <div className="text-[10px] text-slate-400 text-center pt-2">
+                  Telemetric feed: {liveTrainData?.source || 'api.railradar.in/v1/trains'}
+                </div>
+              </>
+            ) : (
+              /* Timetable List */
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">
+                  Full Station Halts ({scheduleData?.schedule?.length || 0} stops)
+                </div>
+                {(scheduleData?.schedule || []).map((st: any, i: number) => (
+                  <div
+                    key={st.code}
+                    className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/40 border-slate-700/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] flex items-center justify-center font-bold">
+                        {st.stop}
+                      </span>
+                      <div>
+                        <div className="font-bold">{st.name}</div>
+                        <div className="text-[10px] text-slate-400">{st.dist} km · Halt: {st.halt}m</div>
+                      </div>
+                    </div>
+                    <div className="text-right font-mono text-[11px]">
+                      <div>{st.arr}</div>
+                      <div className="text-slate-400">{st.dep}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

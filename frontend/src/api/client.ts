@@ -33,3 +33,14 @@ export const configApi = {
 export const auditApi = {
   getOverrides: () => api.get('/api/audit/overrides'),
 };
+
+export const railRadarApi = {
+  getLive: (trainNumber: string, apiKey?: string) =>
+    api.get(`/api/railradar/trains/${trainNumber}/live`, {
+      params: apiKey ? { api_key: apiKey } : undefined,
+    }),
+  getSchedule: (trainNumber: string, apiKey?: string) =>
+    api.get(`/api/railradar/trains/${trainNumber}`, {
+      params: apiKey ? { api_key: apiKey } : undefined,
+    }),
+};
