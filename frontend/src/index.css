@@ -6,7 +6,104 @@
   html {
     background-color: #0F172A;
     color: #F8FAFC;
+    scroll-behavior: smooth;
   }
+
+  /* Custom dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0f172a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+}
+
+@layer utilities {
+  /* Glow effects */
+  .glow-indigo {
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4), 0 0 24px rgba(99, 102, 241, 0.15);
+  }
+  .glow-green {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4), 0 0 24px rgba(16, 185, 129, 0.15);
+  }
+  .glow-red {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4), 0 0 24px rgba(239, 68, 68, 0.15);
+  }
+  .glow-orange {
+    box-shadow: 0 0 12px rgba(249, 115, 22, 0.4), 0 0 24px rgba(249, 115, 22, 0.15);
+  }
+
+  /* Animated dot grid background */
+  .dot-grid {
+    background-image: radial-gradient(circle, #1e293b 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Track line animation */
+  .track-line {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: track-draw 2s ease forwards;
+  }
+}
+
+/* Train animation keyframes */
+@keyframes train-move {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120vw); }
+}
+
+@keyframes track-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes signal-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes spin-wheel {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-train {
+  animation: train-move 8s linear infinite;
+}
+
+.animate-signal {
+  animation: signal-pulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float-up 3s ease-in-out infinite;
+}
+
+.animate-spin-wheel {
+  animation: spin-wheel 1s linear infinite;
+}
+
+.animate-status-blink {
+  animation: status-blink 2s ease-in-out infinite;
 }
 
 /* React Big Calendar Dark Theme Overrides */
@@ -54,4 +151,36 @@
 }
 .rbc-toolbar button {
   @apply text-slate-300;
+}
+
+/* Leaflet Map Dark Theme */
+.leaflet-container {
+  background: #0f172a !important;
+  font-family: inherit;
+}
+.leaflet-popup-content-wrapper {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+}
+.leaflet-popup-tip {
+  background: #1e293b !important;
+}
+.leaflet-control-zoom a {
+  background-color: #1e293b !important;
+  color: #94a3b8 !important;
+  border-color: #334155 !important;
+}
+.leaflet-control-zoom a:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+.leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #64748b !important;
+}
+.leaflet-control-attribution a {
+  color: #6366f1 !important;
 }
