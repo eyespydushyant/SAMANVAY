@@ -5,7 +5,14 @@ from app.api import tasks, plans, config, audit, railradar
 
 app = FastAPI(title="SAMANVAY API", version="1.0.0", description="AI-Powered Block Planning for Indian Railways")
 
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:5173"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# Allow all origins so frontend on Render, Vercel, or localtunnel can access API seamlessly
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(tasks.router, prefix="/api")
 app.include_router(plans.router, prefix="/api")

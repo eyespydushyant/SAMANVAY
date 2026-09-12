@@ -1,7 +1,13 @@
 import axios from 'axios';
 
-const isDev = (import.meta as any).env?.DEV || window.location.hostname === 'localhost';
-const apiBase = (import.meta as any).env?.VITE_API_URL || (isDev ? 'http://localhost:8000' : '');
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+);
+
+const apiBase = (import.meta as any).env?.VITE_API_URL || (
+  isLocal ? 'http://localhost:8000' : 'https://samanvay-api.onrender.com'
+);
 
 const api = axios.create({
   baseURL: apiBase,
