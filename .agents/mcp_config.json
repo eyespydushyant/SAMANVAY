@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "21st": {
+      "url": "https://21st.dev/api/mcp",
+      "headers": {
+        "x-api-key": ""
+      }
+    },
+    "21st-remote": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://21st.dev/api/mcp"],
+      "env": {}
+    },
+    "coderabbit": {
+      "command": "npx",
+      "args": ["-y", "coderabbitai-mcp"],
+      "env": {}
+    }
+  }
+}
